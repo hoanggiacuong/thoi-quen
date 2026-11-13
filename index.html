@@ -65,8 +65,10 @@
   .legend div { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; }
   .legend i { width: 16px; height: 16px; border-radius: 5px; background: var(--c); display: inline-block; }
   .legend small { font-size: 12px; opacity: .65; font-weight: 700; }
-  .legend .add { border: 1.5px dashed rgba(107,91,115,.4); background: transparent; color: var(--text); border-radius: 10px;
-    padding: 2px 10px; font: 800 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .legend .add { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #e7dcf5; color: var(--text);
+    display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(107,91,115,.15); transition: transform .15s; }
+  .legend .add:active { transform: scale(.88); }
   .mrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--soft); font-weight: 800; font-size: 17px; }
   .mrow i { width: 20px; height: 20px; border-radius: 6px; background: var(--c); }
   .mrow button { margin-left: auto; border: 0; border-radius: 8px; padding: 4px 12px; background: #ffd6d6; color: #a25b5b; font: 700 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
@@ -212,7 +214,7 @@ function render() {
 
   document.getElementById("legend").innerHTML = HABITS.map((h, j) =>
     `<div style="--c:${h.color}"><i></i>${esc(h.name)} <small>${counts[j]}/${past}</small></div>`).join("")
-    + `<button class="add" id="addBtn">+ Chủ đề</button>`;
+    + `<button class="add" id="addBtn" aria-label="Thêm / sửa chủ đề"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`;
   document.getElementById("addBtn").onclick = openManage;
 }
 
