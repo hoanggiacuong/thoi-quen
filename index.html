@@ -63,6 +63,17 @@
   .legend div { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; }
   .legend i { width: 16px; height: 16px; border-radius: 3px; background: var(--c); display: inline-block; }
   .legend small { font-size: 12px; opacity: .75; font-weight: 700; }
+  .legend .add { border: 1px dashed rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px;
+    padding: 2px 10px; font: 800 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .mrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; background: rgba(0,0,0,.2); font-weight: 800; font-size: 17px; }
+  .mrow i { width: 20px; height: 20px; border-radius: 4px; background: var(--c); }
+  .mrow button { margin-left: auto; border: 0; border-radius: 8px; padding: 4px 12px; background: rgba(255,60,60,.25); color: #fff; font: 700 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .newbox { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.15); }
+  .newbox input { width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; font: 700 16px "Baloo 2", system-ui, sans-serif; background: #fff; color: #333; -webkit-user-select: text; user-select: text; }
+  #colors { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  #colors .sw { width: 30px; height: 30px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  #colors .sw.sel { border-color: #fff; box-shadow: 0 0 0 2px #333 inset; }
+  .sheet button.addh { justify-content: center; background: rgba(255,255,255,.18); }
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
   .sheet-bg.open { display: flex; }
   .sheet { background: #555; width: 100%; max-width: 460px; border-radius: 16px 16px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 18px); }
@@ -94,12 +105,25 @@
     <button class="close" id="sheetClose">Xong</button>
   </div>
 </div>
+<div class="sheet-bg" id="manageBg">
+  <div class="sheet">
+    <h3>Chủ đề</h3>
+    <div id="manageList"></div>
+    <div class="newbox">
+      <input id="newName" maxlength="20" placeholder="Tên chủ đề mới (vd: Tập thể dục)">
+      <div id="colors"></div>
+      <button class="h addh" id="addHabit">+ Thêm chủ đề</button>
+    </div>
+    <button class="close" id="manageClose">Xong</button>
+  </div>
+</div>
 
 <script>
 // ====== Danh sách thói quen: thêm/bớt/đổi màu ở đây ======
-const HABITS = [
+const DEFAULT_HABITS = [
   { id: "giamcan", name: "Giảm cân", color: "#f20d0d" },
   { id: "uongnuoc", name: "Uống nước", color: "#4a90ff" },
+  { id: "tapluyen", name: "Tập luyện", color: "#2ecc40" },
 ];
 
 const KEY = "habit-calendar-v1";
@@ -107,6 +131,8 @@ const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
 const save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {} };
 let data = load();               // { days: {habitId: {"2026-11-13": true}}, auto: {"2026-11-13": true} }
 data.days ||= {}; data.auto ||= {};
+data.habits ||= DEFAULT_HABITS;   // danh sách chủ đề lưu trong máy, thêm/xoá ngay trong app
+let HABITS = data.habits;
 HABITS.forEach(h => data.days[h.id] ||= {});
 
 const pad = n => String(n).padStart(2, "0");
@@ -177,8 +203,61 @@ function render() {
   }
 
   document.getElementById("legend").innerHTML = HABITS.map((h, j) =>
-    `<div style="--c:${h.color}"><i></i>${h.name} <small>${counts[j]}/${past}</small></div>`).join("");
+    `<div style="--c:${h.color}"><i></i>${esc(h.name)} <small>${counts[j]}/${past}</small></div>`).join("")
+    + `<button class="add" id="addBtn">+ Chủ đề</button>`;
+  document.getElementById("addBtn").onclick = openManage;
 }
+
+const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ====== Thêm / xoá chủ đề ======
+const COLORS = ["#f20d0d", "#4a90ff", "#2ecc40", "#ffcc00", "#ff8a00", "#b84dff", "#ff4fa3", "#00d1c1", "#8b5a2b", "#ffffff"];
+const manageBg = document.getElementById("manageBg");
+let pickColor = null;
+function openManage() {
+  const used = HABITS.map(h => h.color);
+  pickColor = COLORS.find(c => !used.includes(c)) || COLORS[0];
+  drawManage();
+  document.getElementById("newName").value = "";
+  manageBg.classList.add("open");
+}
+function drawManage() {
+  const list = document.getElementById("manageList");
+  list.innerHTML = "";
+  HABITS.forEach(h => {
+    const r = document.createElement("div");
+    r.className = "mrow";
+    r.style.setProperty("--c", h.color);
+    r.innerHTML = `<i></i><span>${esc(h.name)}</span>`;
+    const del = document.createElement("button");
+    del.textContent = "Xoá";
+    del.onclick = () => {
+      if (HABITS.length <= 1) return alert("Cần giữ ít nhất 1 chủ đề");
+      if (!confirm(`Xoá "${h.name}" và toàn bộ ngày đã đánh dấu của nó?`)) return;
+      HABITS.splice(HABITS.indexOf(h), 1);
+      delete data.days[h.id];
+      save(data); drawManage(); render();
+    };
+    r.appendChild(del);
+    list.appendChild(r);
+  });
+  document.getElementById("colors").innerHTML = COLORS.map(c =>
+    `<button class="sw${c === pickColor ? " sel" : ""}" style="background:${c}" data-c="${c}" aria-label="màu"></button>`).join("");
+  document.querySelectorAll("#colors .sw").forEach(b => b.onclick = () => { pickColor = b.dataset.c; drawManage(); });
+}
+document.getElementById("addHabit").onclick = () => {
+  const inp = document.getElementById("newName");
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+  const id = "h" + Date.now();
+  HABITS.push({ id, name, color: pickColor });
+  data.days[id] = { [todayKey()]: true };   // chủ đề mới: hôm nay sáng luôn
+  justLit = todayKey();
+  save(data);
+  openManage(); render();
+};
+document.getElementById("manageClose").onclick = () => manageBg.classList.remove("open");
+manageBg.onclick = e => { if (e.target === manageBg) manageBg.classList.remove("open"); };
 
 // Bảng chọn việc khi chạm vào 1 ngày
 const sheetBg = document.getElementById("sheetBg");
