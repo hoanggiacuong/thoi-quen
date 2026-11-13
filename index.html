@@ -72,6 +72,7 @@
   .mrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--soft); font-weight: 800; font-size: 17px; }
   .mrow i { width: 20px; height: 20px; border-radius: 6px; background: var(--c); }
   .mrow button { margin-left: auto; border: 0; border-radius: 8px; padding: 4px 12px; background: #ffd6d6; color: #a25b5b; font: 700 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .mrow button.armed { background: #ff8f8f; color: #fff; }
   .newbox { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid rgba(107,91,115,.12); }
   .newbox input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--empty); border-radius: 12px; font: 700 16px "Baloo 2", system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-user-select: text; user-select: text; outline: none; }
   #colors { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
@@ -240,9 +241,14 @@ function drawManage() {
     r.innerHTML = `<i></i><span>${esc(h.name)}</span>`;
     const del = document.createElement("button");
     del.textContent = "Xoá";
+    // Bấm 1 lần -> "Chắc chưa?", bấm lần 2 trong 3 giây mới xoá (không dùng confirm() vì app trên màn hình chính có thể chặn hộp thoại)
     del.onclick = () => {
-      if (HABITS.length <= 1) return alert("Cần giữ ít nhất 1 chủ đề");
-      if (!confirm(`Xoá "${h.name}" và toàn bộ ngày đã đánh dấu của nó?`)) return;
+      if (HABITS.length <= 1) { del.textContent = "Cần ≥ 1 chủ đề"; setTimeout(() => del.textContent = "Xoá", 1500); return; }
+      if (!del.dataset.armed) {
+        del.dataset.armed = "1"; del.textContent = "Chắc chưa?"; del.classList.add("armed");
+        setTimeout(() => { delete del.dataset.armed; del.textContent = "Xoá"; del.classList.remove("armed"); }, 3000);
+        return;
+      }
       HABITS.splice(HABITS.indexOf(h), 1);
       delete data.days[h.id];
       save(data); drawManage(); render();
