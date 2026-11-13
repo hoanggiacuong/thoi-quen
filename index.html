@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Lịch thói quen</title>
-<meta name="theme-color" content="#6b6b6b">
+<meta name="theme-color" content="#fdf6f0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Thói quen">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -16,20 +16,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
 <style>
-  /* ====== Đổi màu / cỡ ở đây ====== */
+  /* ====== Đổi màu / cỡ ở đây (pastel) ====== */
   :root {
-    --bg: #6b6b6b;
-    --empty: #4e4e4e;
-    --future: #5a5a5a;
-    --label: #5a1a1a;
-    --title: #ffffff;
+    --bg: #fdf6f0;        /* nền kem */
+    --card: #ffffff;      /* nền bảng chọn */
+    --empty: #ece3dd;     /* ô chưa làm */
+    --future: #f6efea;    /* ngày chưa tới */
+    --text: #6b5b73;      /* chữ chính (tím xám) */
+    --label: #b89a9a;     /* chữ "Tuần 1" */
+    --soft: rgba(107, 91, 115, .07);
     --gap: 4px;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); }
   body {
     font-family: "Baloo 2", system-ui, -apple-system, sans-serif;
-    color: var(--title);
+    color: var(--text);
     min-height: 100vh;
     padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 24px);
     -webkit-user-select: none; user-select: none;
@@ -38,52 +40,51 @@
   header { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 18px; }
   h1 { font-size: 34px; font-weight: 800; letter-spacing: 3px; margin: 0; text-align: center; flex: 1; }
   .nav {
-    width: 40px; height: 40px; border: 0; border-radius: 10px; background: rgba(0,0,0,.18);
-    color: #fff; font-size: 22px; font-family: inherit; cursor: pointer;
+    width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--soft);
+    color: var(--text); font-size: 22px; font-family: inherit; cursor: pointer;
   }
-  .nav:disabled { opacity: .25; }
-  section { margin-bottom: 26px; }
-  h2 { font-size: 22px; font-weight: 800; letter-spacing: 2px; text-align: center; margin: 0 0 8px; }
+  .nav:disabled { opacity: .3; }
   .row { display: grid; grid-template-columns: 58px repeat(7, 1fr); gap: var(--gap); margin-bottom: var(--gap); align-items: center; }
   .row .lbl { font-size: 12px; font-weight: 800; color: var(--label); text-align: right; padding-right: 8px; white-space: nowrap; }
   .cell {
-    aspect-ratio: 1; border-radius: 3px; background: var(--empty); position: relative;
+    aspect-ratio: 1; border-radius: 6px; background: var(--empty); position: relative; overflow: hidden;
     border: 0; padding: 0; cursor: pointer; transition: background .25s, transform .15s;
   }
   .cell:active { transform: scale(.9); }
-  .cell.on { background: var(--c); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
-  .cell.future { background: var(--future); opacity: .55; cursor: default; }
-  .cell.today { outline: 2px solid #fff; outline-offset: 1px; }
+  .cell.on { box-shadow: inset 0 -2px 0 rgba(0,0,0,.05); }
+  .cell.future { background: var(--future); cursor: default; }
+  .cell.today { outline: 2px solid var(--text); outline-offset: 1px; }
   .cell.blank { visibility: hidden; }
-  .cell span { position: absolute; top: 2px; left: 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,.55); }
-  .cell.on span { color: rgba(255,255,255,.85); }
+  .cell span { position: absolute; top: 2px; left: 4px; font-size: 10px; font-weight: 700; color: rgba(107,91,115,.45); }
+  .cell.on span { color: rgba(107,91,115,.8); }
+  .cell.future span { color: rgba(107,91,115,.25); }
   .cell.pop { animation: pop .6s ease; }
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
-  .legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 0 0 14px; }
+  .legend { display: flex; justify-content: center; gap: 8px 16px; flex-wrap: wrap; margin: 0 0 14px; }
   .legend div { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; }
-  .legend i { width: 16px; height: 16px; border-radius: 3px; background: var(--c); display: inline-block; }
-  .legend small { font-size: 12px; opacity: .75; font-weight: 700; }
-  .legend .add { border: 1px dashed rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 8px;
+  .legend i { width: 16px; height: 16px; border-radius: 5px; background: var(--c); display: inline-block; }
+  .legend small { font-size: 12px; opacity: .65; font-weight: 700; }
+  .legend .add { border: 1.5px dashed rgba(107,91,115,.4); background: transparent; color: var(--text); border-radius: 10px;
     padding: 2px 10px; font: 800 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
-  .mrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; background: rgba(0,0,0,.2); font-weight: 800; font-size: 17px; }
-  .mrow i { width: 20px; height: 20px; border-radius: 4px; background: var(--c); }
-  .mrow button { margin-left: auto; border: 0; border-radius: 8px; padding: 4px 12px; background: rgba(255,60,60,.25); color: #fff; font: 700 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
-  .newbox { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.15); }
-  .newbox input { width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; font: 700 16px "Baloo 2", system-ui, sans-serif; background: #fff; color: #333; -webkit-user-select: text; user-select: text; }
+  .mrow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--soft); font-weight: 800; font-size: 17px; }
+  .mrow i { width: 20px; height: 20px; border-radius: 6px; background: var(--c); }
+  .mrow button { margin-left: auto; border: 0; border-radius: 8px; padding: 4px 12px; background: #ffd6d6; color: #a25b5b; font: 700 14px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .newbox { margin: 14px 0 6px; padding-top: 12px; border-top: 1px solid rgba(107,91,115,.12); }
+  .newbox input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--empty); border-radius: 12px; font: 700 16px "Baloo 2", system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-user-select: text; user-select: text; outline: none; }
   #colors { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-  #colors .sw { width: 30px; height: 30px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; padding: 0; }
-  #colors .sw.sel { border-color: #fff; box-shadow: 0 0 0 2px #333 inset; }
-  .sheet button.addh { justify-content: center; background: rgba(255,255,255,.18); }
-  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  #colors .sw { width: 30px; height: 30px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  #colors .sw.sel { border-color: var(--text); }
+  .sheet button.addh { justify-content: center; background: #e7dcf5; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(107,91,115,.25); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
   .sheet-bg.open { display: flex; }
-  .sheet { background: #555; width: 100%; max-width: 460px; border-radius: 16px 16px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 18px); }
+  .sheet { background: var(--card); width: 100%; max-width: 460px; border-radius: 20px 20px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 18px); box-shadow: 0 -6px 24px rgba(107,91,115,.12); }
   .sheet h3 { margin: 0 0 12px; text-align: center; font-size: 20px; }
-  .sheet button.h { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; margin-bottom: 8px; border: 0; border-radius: 10px;
-    background: rgba(0,0,0,.2); color: #fff; font: 800 17px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
-  .sheet button.h i { width: 22px; height: 22px; border-radius: 4px; background: var(--empty); }
+  .sheet button.h { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; margin-bottom: 8px; border: 0; border-radius: 12px;
+    background: var(--soft); color: var(--text); font: 800 17px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .sheet button.h i { width: 22px; height: 22px; border-radius: 6px; background: var(--empty); }
   .sheet button.h.on i { background: var(--c); }
-  .sheet button.h b { margin-left: auto; font-size: 14px; opacity: .8; }
-  .sheet button.close { width: 100%; padding: 10px; border: 0; border-radius: 10px; background: transparent; color: #fff; font: 700 15px "Baloo 2", system-ui, sans-serif; opacity: .7; }
+  .sheet button.h b { margin-left: auto; font-size: 14px; opacity: .7; }
+  .sheet button.close { width: 100%; padding: 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font: 700 15px "Baloo 2", system-ui, sans-serif; opacity: .7; }
   .hint { text-align: center; font-size: 12px; opacity: .55; margin-top: 8px; }
 </style>
 </head>
@@ -121,10 +122,15 @@
 <script>
 // ====== Danh sách thói quen: thêm/bớt/đổi màu ở đây ======
 const DEFAULT_HABITS = [
-  { id: "giamcan", name: "Giảm cân", color: "#f20d0d" },
-  { id: "uongnuoc", name: "Uống nước", color: "#4a90ff" },
-  { id: "tapluyen", name: "Tập luyện", color: "#2ecc40" },
+  { id: "giamcan", name: "Giảm cân", color: "#ffadad" },
+  { id: "uongnuoc", name: "Uống nước", color: "#a0c4ff" },
+  { id: "tapluyen", name: "Tập luyện", color: "#b5e8c3" },
 ];
+// Bảng màu pastel để chọn khi thêm chủ đề
+const COLORS = ["#ffadad", "#a0c4ff", "#b5e8c3", "#fdf1a6", "#ffd6a5", "#cdb4ff", "#ffc6e5", "#a8eee8", "#e6ccb2", "#d0d4dc"];
+// Đổi màu đậm của bản cũ sang pastel tương ứng
+const OLD2PASTEL = { "#f20d0d": "#ffadad", "#4a90ff": "#a0c4ff", "#2ecc40": "#b5e8c3", "#ffcc00": "#fdf1a6", "#ff8a00": "#ffd6a5",
+  "#b84dff": "#cdb4ff", "#ff4fa3": "#ffc6e5", "#00d1c1": "#a8eee8", "#8b5a2b": "#e6ccb2", "#ffffff": "#d0d4dc" };
 
 const KEY = "habit-calendar-v1";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
@@ -133,6 +139,8 @@ let data = load();               // { days: {habitId: {"2026-11-13": true}}, aut
 data.days ||= {}; data.auto ||= {};
 data.habits ||= DEFAULT_HABITS;   // danh sách chủ đề lưu trong máy, thêm/xoá ngay trong app
 let HABITS = data.habits;
+HABITS.forEach(h => { if (OLD2PASTEL[h.color]) h.color = OLD2PASTEL[h.color]; });
+save(data);
 HABITS.forEach(h => data.days[h.id] ||= {});
 
 const pad = n => String(n).padStart(2, "0");
@@ -211,7 +219,6 @@ function render() {
 const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 // ====== Thêm / xoá chủ đề ======
-const COLORS = ["#f20d0d", "#4a90ff", "#2ecc40", "#ffcc00", "#ff8a00", "#b84dff", "#ff4fa3", "#00d1c1", "#8b5a2b", "#ffffff"];
 const manageBg = document.getElementById("manageBg");
 let pickColor = null;
 function openManage() {
