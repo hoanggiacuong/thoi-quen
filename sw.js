@@ -1,5 +1,5 @@
 // Đổi số version mỗi lần sửa index.html để iPhone tải bản mới
-const CACHE = "habit-v6";
+const CACHE = "habit-v7";
 const FILES = ["./", "index.html", "manifest.json", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
