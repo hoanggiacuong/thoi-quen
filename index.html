@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Lịch thói quen</title>
+<meta name="theme-color" content="#6b6b6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Thói quen">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  /* ====== Đổi màu / cỡ ở đây ====== */
+  :root {
+    --bg: #6b6b6b;
+    --empty: #4e4e4e;
+    --future: #5a5a5a;
+    --label: #5a1a1a;
+    --title: #ffffff;
+    --gap: 4px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); }
+  body {
+    font-family: "Baloo 2", system-ui, -apple-system, sans-serif;
+    color: var(--title);
+    min-height: 100vh;
+    padding: calc(env(safe-area-inset-top) + 20px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    -webkit-user-select: none; user-select: none;
+  }
+  .wrap { max-width: 460px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 18px; }
+  h1 { font-size: 34px; font-weight: 800; letter-spacing: 3px; margin: 0; text-align: center; flex: 1; }
+  .nav {
+    width: 40px; height: 40px; border: 0; border-radius: 10px; background: rgba(0,0,0,.18);
+    color: #fff; font-size: 22px; font-family: inherit; cursor: pointer;
+  }
+  .nav:disabled { opacity: .25; }
+  section { margin-bottom: 26px; }
+  h2 { font-size: 22px; font-weight: 800; letter-spacing: 2px; text-align: center; margin: 0 0 8px; }
+  .row { display: grid; grid-template-columns: 58px repeat(7, 1fr); gap: var(--gap); margin-bottom: var(--gap); align-items: center; }
+  .row .lbl { font-size: 12px; font-weight: 800; color: var(--label); text-align: right; padding-right: 8px; white-space: nowrap; }
+  .cell {
+    aspect-ratio: 1; border-radius: 3px; background: var(--empty); position: relative;
+    border: 0; padding: 0; cursor: pointer; transition: background .25s, transform .15s;
+  }
+  .cell:active { transform: scale(.9); }
+  .cell.on { background: var(--c); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+  .cell.future { background: var(--future); opacity: .55; cursor: default; }
+  .cell.today { outline: 2px solid #fff; outline-offset: 1px; }
+  .cell.blank { visibility: hidden; }
+  .cell span { position: absolute; top: 2px; left: 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,.55); }
+  .cell.on span { color: rgba(255,255,255,.85); }
+  .cell.pop { animation: pop .6s ease; }
+  @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .stat { text-align: center; font-size: 13px; opacity: .8; margin-top: 4px; }
+  .hint { text-align: center; font-size: 12px; opacity: .55; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="nav" id="prev" aria-label="Tháng trước">‹</button>
+    <h1 id="title">Tháng</h1>
+    <button class="nav" id="next" aria-label="Tháng sau">›</button>
+  </header>
+  <div id="habits"></div>
+  <div class="hint">Mở app mỗi ngày là ô hôm nay tự sáng · Chạm vào ô để bật/tắt</div>
+</div>
+
+<script>
+// ====== Danh sách thói quen: thêm/bớt/đổi màu ở đây ======
+const HABITS = [
+  { id: "giamcan", name: "Giảm cân", color: "#f20d0d" },
+  { id: "uongnuoc", name: "Uống nước", color: "#4a90ff" },
+];
+
+const KEY = "habit-calendar-v1";
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+const save = (d) => { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch {} };
+let data = load();               // { days: {habitId: {"2026-11-13": true}}, auto: {"2026-11-13": true} }
+data.days ||= {}; data.auto ||= {};
+HABITS.forEach(h => data.days[h.id] ||= {});
+
+const pad = n => String(n).padStart(2, "0");
+const ymd = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const todayKey = () => { const t = new Date(); return ymd(t.getFullYear(), t.getMonth(), t.getDate()); };
+
+const now = new Date();
+let viewY = now.getFullYear(), viewM = now.getMonth();
+let justLit = null;
+
+// Vào app hôm nay -> tự sáng (mỗi ngày chỉ tự bật 1 lần, nếu chạm tắt thì không bật lại)
+function autoMark() {
+  const k = todayKey();
+  if (data.auto[k]) return false;
+  data.auto[k] = true;
+  HABITS.forEach(h => data.days[h.id][k] = true);
+  save(data);
+  justLit = k;
+  return true;
+}
+
+function render() {
+  const t = new Date();
+  const tk = todayKey();
+  const daysInMonth = new Date(viewY, viewM + 1, 0).getDate();
+  const weeks = Math.ceil(daysInMonth / 7);
+  document.getElementById("title").textContent = `Tháng ${viewM + 1}` + (viewY !== t.getFullYear() ? ` · ${viewY}` : "");
+  document.getElementById("next").disabled = viewY > t.getFullYear() || (viewY === t.getFullYear() && viewM >= t.getMonth());
+
+  const root = document.getElementById("habits");
+  root.innerHTML = "";
+  HABITS.forEach(h => {
+    const sec = document.createElement("section");
+    sec.style.setProperty("--c", h.color);
+    sec.innerHTML = `<h2>${h.name}</h2>`;
+    let count = 0, past = 0;
+    for (let w = 0; w < weeks; w++) {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<div class="lbl">Tuần ${w + 1}</div>`;
+      for (let i = 0; i < 7; i++) {
+        const d = w * 7 + i + 1;
+        const b = document.createElement("button");
+        b.className = "cell";
+        if (d > daysInMonth) { b.classList.add("blank"); row.appendChild(b); continue; }
+        const k = ymd(viewY, viewM, d);
+        b.innerHTML = `<span>${d}</span>`;
+        if (k > tk) { b.classList.add("future"); b.disabled = true; }
+        else {
+          past++;
+          if (data.days[h.id][k]) { b.classList.add("on"); count++; }
+          if (k === justLit) b.classList.add("pop");
+          b.onclick = () => {
+            data.days[h.id][k] = !data.days[h.id][k];
+            if (!data.days[h.id][k]) delete data.days[h.id][k];
+            save(data); justLit = null; render();
+          };
+        }
+        if (k === tk) b.classList.add("today");
+        row.appendChild(b);
+      }
+      sec.appendChild(row);
+    }
+    const st = document.createElement("div");
+    st.className = "stat";
+    st.textContent = `${count}/${past} ngày`;
+    sec.appendChild(st);
+    root.appendChild(sec);
+  });
+}
+
+document.getElementById("prev").onclick = () => { if (--viewM < 0) { viewM = 11; viewY--; } justLit = null; render(); };
+document.getElementById("next").onclick = () => { if (++viewM > 11) { viewM = 0; viewY++; } justLit = null; render(); };
+
+// Mở lại app từ nền (iOS giữ app trong bộ nhớ qua đêm) -> kiểm tra ngày mới
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  const t = new Date(); viewY = t.getFullYear(); viewM = t.getMonth();
+  autoMark(); render();
+});
+
+autoMark();
+render();
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+</body>
+</html>
