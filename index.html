@@ -59,7 +59,20 @@
   .cell.on span { color: rgba(255,255,255,.85); }
   .cell.pop { animation: pop .6s ease; }
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
-  .stat { text-align: center; font-size: 13px; opacity: .8; margin-top: 4px; }
+  .legend { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin: 0 0 14px; }
+  .legend div { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; }
+  .legend i { width: 16px; height: 16px; border-radius: 3px; background: var(--c); display: inline-block; }
+  .legend small { font-size: 12px; opacity: .75; font-weight: 700; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet-bg.open { display: flex; }
+  .sheet { background: #555; width: 100%; max-width: 460px; border-radius: 16px 16px 0 0; padding: 16px 16px calc(env(safe-area-inset-bottom) + 18px); }
+  .sheet h3 { margin: 0 0 12px; text-align: center; font-size: 20px; }
+  .sheet button.h { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; margin-bottom: 8px; border: 0; border-radius: 10px;
+    background: rgba(0,0,0,.2); color: #fff; font: 800 17px "Baloo 2", system-ui, sans-serif; cursor: pointer; }
+  .sheet button.h i { width: 22px; height: 22px; border-radius: 4px; background: var(--empty); }
+  .sheet button.h.on i { background: var(--c); }
+  .sheet button.h b { margin-left: auto; font-size: 14px; opacity: .8; }
+  .sheet button.close { width: 100%; padding: 10px; border: 0; border-radius: 10px; background: transparent; color: #fff; font: 700 15px "Baloo 2", system-ui, sans-serif; opacity: .7; }
   .hint { text-align: center; font-size: 12px; opacity: .55; margin-top: 8px; }
 </style>
 </head>
@@ -70,8 +83,16 @@
     <h1 id="title">Tháng</h1>
     <button class="nav" id="next" aria-label="Tháng sau">›</button>
   </header>
-  <div id="habits"></div>
-  <div class="hint">Mở app mỗi ngày là ô hôm nay tự sáng · Chạm vào ô để bật/tắt</div>
+  <div class="legend" id="legend"></div>
+  <div id="cal"></div>
+  <div class="hint">Mở app mỗi ngày là ô hôm nay tự sáng · Chạm vào ô để chọn việc đã làm</div>
+</div>
+<div class="sheet-bg" id="sheetBg">
+  <div class="sheet">
+    <h3 id="sheetTitle">Ngày</h3>
+    <div id="sheetList"></div>
+    <button class="close" id="sheetClose">Xong</button>
+  </div>
 </div>
 
 <script>
@@ -115,47 +136,75 @@ function render() {
   document.getElementById("title").textContent = `Tháng ${viewM + 1}` + (viewY !== t.getFullYear() ? ` · ${viewY}` : "");
   document.getElementById("next").disabled = viewY > t.getFullYear() || (viewY === t.getFullYear() && viewM >= t.getMonth());
 
-  const root = document.getElementById("habits");
+  // Ô nhiều màu: mỗi việc 1 dải cố định (trên→dưới), việc chưa làm thì dải đó xám
+  const fill = k => {
+    const n = HABITS.length;
+    if (!HABITS.some(h => data.days[h.id][k])) return "";
+    return "linear-gradient(to bottom," + HABITS.map((h, i) => {
+      const c = data.days[h.id][k] ? h.color : "var(--empty)";
+      return `${c} ${(i / n * 100).toFixed(2)}%, ${c} ${((i + 1) / n * 100).toFixed(2)}%`;
+    }).join(",") + ")";
+  };
+
+  const counts = HABITS.map(() => 0);
+  let past = 0;
+  const root = document.getElementById("cal");
   root.innerHTML = "";
-  HABITS.forEach(h => {
-    const sec = document.createElement("section");
-    sec.style.setProperty("--c", h.color);
-    sec.innerHTML = `<h2>${h.name}</h2>`;
-    let count = 0, past = 0;
-    for (let w = 0; w < weeks; w++) {
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `<div class="lbl">Tuần ${w + 1}</div>`;
-      for (let i = 0; i < 7; i++) {
-        const d = w * 7 + i + 1;
-        const b = document.createElement("button");
-        b.className = "cell";
-        if (d > daysInMonth) { b.classList.add("blank"); row.appendChild(b); continue; }
-        const k = ymd(viewY, viewM, d);
-        b.innerHTML = `<span>${d}</span>`;
-        if (k > tk) { b.classList.add("future"); b.disabled = true; }
-        else {
-          past++;
-          if (data.days[h.id][k]) { b.classList.add("on"); count++; }
-          if (k === justLit) b.classList.add("pop");
-          b.onclick = () => {
-            data.days[h.id][k] = !data.days[h.id][k];
-            if (!data.days[h.id][k]) delete data.days[h.id][k];
-            save(data); justLit = null; render();
-          };
-        }
-        if (k === tk) b.classList.add("today");
-        row.appendChild(b);
+  for (let w = 0; w < weeks; w++) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `<div class="lbl">Tuần ${w + 1}</div>`;
+    for (let i = 0; i < 7; i++) {
+      const d = w * 7 + i + 1;
+      const b = document.createElement("button");
+      b.className = "cell";
+      if (d > daysInMonth) { b.classList.add("blank"); row.appendChild(b); continue; }
+      const k = ymd(viewY, viewM, d);
+      b.innerHTML = `<span>${d}</span>`;
+      if (k > tk) { b.classList.add("future"); b.disabled = true; }
+      else {
+        past++;
+        HABITS.forEach((h, j) => { if (data.days[h.id][k]) counts[j]++; });
+        const bg = fill(k);
+        if (bg) { b.classList.add("on"); b.style.background = bg; }
+        if (k === justLit) b.classList.add("pop");
+        b.onclick = () => openSheet(k, d);
       }
-      sec.appendChild(row);
+      if (k === tk) b.classList.add("today");
+      row.appendChild(b);
     }
-    const st = document.createElement("div");
-    st.className = "stat";
-    st.textContent = `${count}/${past} ngày`;
-    sec.appendChild(st);
-    root.appendChild(sec);
-  });
+    root.appendChild(row);
+  }
+
+  document.getElementById("legend").innerHTML = HABITS.map((h, j) =>
+    `<div style="--c:${h.color}"><i></i>${h.name} <small>${counts[j]}/${past}</small></div>`).join("");
 }
+
+// Bảng chọn việc khi chạm vào 1 ngày
+const sheetBg = document.getElementById("sheetBg");
+function openSheet(k, d) {
+  document.getElementById("sheetTitle").textContent = `Ngày ${d}/${viewM + 1}`;
+  const list = document.getElementById("sheetList");
+  const draw = () => {
+    list.innerHTML = "";
+    HABITS.forEach(h => {
+      const b = document.createElement("button");
+      const on = !!data.days[h.id][k];
+      b.className = "h" + (on ? " on" : "");
+      b.style.setProperty("--c", h.color);
+      b.innerHTML = `<i></i>${h.name}<b>${on ? "Đã làm" : "Chưa"}</b>`;
+      b.onclick = () => {
+        if (on) delete data.days[h.id][k]; else data.days[h.id][k] = true;
+        save(data); justLit = null; draw(); render();
+      };
+      list.appendChild(b);
+    });
+  };
+  draw();
+  sheetBg.classList.add("open");
+}
+document.getElementById("sheetClose").onclick = () => sheetBg.classList.remove("open");
+sheetBg.onclick = e => { if (e.target === sheetBg) sheetBg.classList.remove("open"); };
 
 document.getElementById("prev").onclick = () => { if (--viewM < 0) { viewM = 11; viewY--; } justLit = null; render(); };
 document.getElementById("next").onclick = () => { if (++viewM > 11) { viewM = 0; viewY++; } justLit = null; render(); };
