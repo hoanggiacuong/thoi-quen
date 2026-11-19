@@ -181,11 +181,13 @@ HABITS.forEach(h => data.days[h.id] ||= {});
 if (data.cheatDow === undefined) data.cheatDow = 6;
 data.cheat ||= {};
 // Hình đánh dấu cheat day: mặc định chọn trong Cài đặt, mỗi ngày có thể chọn riêng (data.cheatIcons[ngày])
-// hoa = emoji 🌸, tim / dâu = ảnh
-const ICONS = { hoa: `<i class="emo">🌸</i>`, tim: `<img src="cheat-tim.png" alt="">`, dau: `<img src="cheat-dau.png" alt="">` };
-data.cheatIcon ||= "hoa";
+// heo / tim / dâu = ảnh (heo thay cho bông hoa cũ)
+const ICONS = { heo: `<img src="cheat-heo.png" alt="">`, tim: `<img src="cheat-tim.png" alt="">`, dau: `<img src="cheat-dau.png" alt="">` };
 data.cheatIcons ||= {};
-const iconOf = k => ICONS[data.cheatIcons[k]] || ICONS[data.cheatIcon] || ICONS.hoa;
+// Dữ liệu cũ đang chọn "hoa" -> đổi sang "heo"
+if (!data.cheatIcon || data.cheatIcon === "hoa") data.cheatIcon = "heo";
+for (const k in data.cheatIcons) if (data.cheatIcons[k] === "hoa") data.cheatIcons[k] = "heo";
+const iconOf = k => ICONS[data.cheatIcons[k]] || ICONS[data.cheatIcon] || ICONS.heo;
 const iconPicker = (cur, onPick) => {
   const w = document.createElement("div");
   w.className = "iconpick";
